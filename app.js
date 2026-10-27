@@ -297,6 +297,9 @@
       selected > 0
         ? `Your quiz will contain up to ${selected} questions.`
         : "Choose a valid question count to continue.";
+
+    // Rebuild the quiz using the newly selected question count.
+    newQuiz();
   }
 
   // ----------------------------------------------------------
@@ -422,11 +425,11 @@
   // ----------------------------------------------------------
 
   function startQuiz() {
-    console.log("DEBUG: startQuiz was called");
     console.log("START QUIZ DEBUG", {
       selectedCategory: elements.category?.value,
+      selectedQuestionCount: elements.questionCount?.value,
+      preparedQuestionCount: currentQuiz.length,
       firstQuestion: currentQuiz[0],
-      questionCount: currentQuiz.length,
     });
     if (quizStarted || quizFinished || quizExpired) return;
 
