@@ -1,0 +1,682 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#123c35" />
+    <meta
+      name="description"
+      content="Build medication brand and generic name recognition with a customizable matching quiz."
+    />
+    <title>Medication Mastery | Medication Matching Quiz</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+
+  <body>
+    <div class="app-shell">
+      <header class="app-header">
+        <a
+          class="brand"
+          href="#"
+          id="homeLink"
+          aria-label="Medication Mastery home"
+        >
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 40 40" fill="none">
+              <rect
+                width="40"
+                height="40"
+                rx="12"
+                fill="currentColor"
+                opacity=".12"
+              />
+              <path
+                d="M20 9v22M9 20h22"
+                stroke="currentColor"
+                stroke-width="4"
+                stroke-linecap="round"
+              />
+            </svg>
+          </span>
+          <span class="brand-copy">
+            <span class="brand-name">Medication Mastery</span>
+            <span class="brand-tagline">Learn it. Match it. Master it.</span>
+          </span>
+        </a>
+
+        <div class="header-note">
+          <span class="status-dot" aria-hidden="true"></span>
+          <span>Medication learning studio</span>
+        </div>
+      </header>
+
+      <main>
+        <!-- SCREEN 1: GAME SETUP -->
+        <section
+          id="setupScreen"
+          class="screen setup-screen"
+          aria-labelledby="setupTitle"
+        >
+          <div class="welcome-panel">
+            <div class="welcome-copy">
+              <p class="eyebrow">YOUR NEXT STUDY SESSION</p>
+              <h1 id="setupTitle">Build your medication knowledge.</h1>
+              <p class="welcome-description">
+                Practice matching generic and brand names with a quiz tailored
+                to your learning goals.
+              </p>
+
+              <div class="welcome-benefits" aria-label="Quiz features">
+                <span><span aria-hidden="true">✓</span> Flexible practice</span>
+                <span><span aria-hidden="true">✓</span> Instant feedback</span>
+                <span
+                  ><span aria-hidden="true">✓</span> Missed-question
+                  review</span
+                >
+              </div>
+            </div>
+
+            <div class="welcome-art" aria-hidden="true">
+              <div class="art-orbit orbit-one"></div>
+              <div class="art-orbit orbit-two"></div>
+              <div class="art-card art-card-back">
+                <span class="art-card-label">BRAND NAME</span>
+                <span class="art-card-line"></span>
+                <span class="art-card-line short"></span>
+              </div>
+              <div class="art-card art-card-front">
+                <span class="art-card-icon">Rx</span>
+                <span class="art-card-label">GENERIC NAME</span>
+                <span class="art-card-line"></span>
+                <span class="art-card-line short"></span>
+              </div>
+              <span class="art-sparkle sparkle-one">✳</span>
+              <span class="art-sparkle sparkle-two">✦</span>
+            </div>
+          </div>
+
+          <div class="setup-layout">
+            <div class="setup-intro">
+              <div>
+                <p class="eyebrow">LET'S GET STARTED</p>
+                <h2>Set up your quiz</h2>
+                <p>Choose your preferences before you begin.</p>
+              </div>
+              <span class="step-indicator">
+                <span class="step-indicator-number">01</span>
+                <span>Setup</span>
+              </span>
+            </div>
+
+            <form id="setupForm" class="setup-card">
+              <div class="setup-section">
+                <div class="section-heading">
+                  <span class="section-icon" aria-hidden="true">01</span>
+                  <div>
+                    <h3>Choose a medication category</h3>
+                    <p>Focus on a subject or use the general collection.</p>
+                  </div>
+                </div>
+
+                <label for="drugCategory" class="field-label"
+                  >Medication category</label
+                >
+                <select
+                  id="drugCategory"
+                  name="drugCategory"
+                  class="form-control"
+                >
+                  <option value="all">General medications</option>
+                  <option value="oncology">Oncology</option>
+                  <option value="diabetes">Diabetes</option>
+                  <option value="antibiotics">Antibiotics</option>
+                  <option value="cardiology">Cardiology</option>
+                  <option value="psychiatry">Psychiatry</option>
+                </select>
+
+                <div class="field-helper-row">
+                  <p id="categoryDescription" class="field-helper">
+                    Build familiarity with general medications.
+                  </p>
+                  <span
+                    id="categoryRecordCount"
+                    class="record-count"
+                    aria-live="polite"
+                  >
+                    Checking medications…
+                  </span>
+                </div>
+              </div>
+
+              <div class="setup-divider"></div>
+
+              <div class="setup-section">
+                <div class="section-heading">
+                  <span class="section-icon" aria-hidden="true">02</span>
+                  <div>
+                    <h3>Choose your quiz length</h3>
+                    <p>Make it a quick review or a longer study session.</p>
+                  </div>
+                </div>
+
+                <label for="questionCount" class="field-label"
+                  >Number of questions</label
+                >
+                <select
+                  id="questionCount"
+                  name="questionCount"
+                  class="form-control"
+                >
+                  <option value="10">10 questions</option>
+                  <option value="20">20 questions</option>
+                  <option value="30">30 questions</option>
+                  <option value="50">50 questions</option>
+                  <option value="max">All available questions</option>
+                </select>
+                <p
+                  id="questionCountHint"
+                  class="field-helper"
+                  aria-live="polite"
+                >
+                  Your quiz will use valid medication records from the selected
+                  category.
+                </p>
+              </div>
+
+              <div class="setup-divider"></div>
+
+              <fieldset class="setup-section fieldset-reset">
+                <legend class="section-heading">
+                  <span class="section-icon" aria-hidden="true">03</span>
+                  <span>
+                    <span class="section-title"
+                      >Choose your matching direction</span
+                    >
+                    <span class="section-description">
+                      Decide which medication names you want to practice.
+                    </span>
+                  </span>
+                </legend>
+
+                <div class="choice-grid direction-grid">
+                  <label class="choice-card">
+                    <input
+                      type="radio"
+                      name="quizDirection"
+                      value="generic-to-brand"
+                      checked
+                    />
+                    <span class="choice-card-content">
+                      <span class="choice-card-top">
+                        <span class="choice-icon" aria-hidden="true">G</span>
+                        <span class="choice-check" aria-hidden="true">✓</span>
+                      </span>
+                      <span class="choice-title">Generic → Brand</span>
+                      <span class="choice-description">
+                        Start with the generic name and find its brand name.
+                      </span>
+                    </span>
+                  </label>
+
+                  <label class="choice-card">
+                    <input
+                      type="radio"
+                      name="quizDirection"
+                      value="brand-to-generic"
+                    />
+                    <span class="choice-card-content">
+                      <span class="choice-card-top">
+                        <span class="choice-icon" aria-hidden="true">B</span>
+                        <span class="choice-check" aria-hidden="true">✓</span>
+                      </span>
+                      <span class="choice-title">Brand → Generic</span>
+                      <span class="choice-description">
+                        Start with the brand name and find its generic name.
+                      </span>
+                    </span>
+                  </label>
+                </div>
+              </fieldset>
+
+              <div class="setup-divider"></div>
+
+              <fieldset class="setup-section fieldset-reset">
+                <legend class="section-heading">
+                  <span class="section-icon" aria-hidden="true">04</span>
+                  <span>
+                    <span class="section-title">Set your timer</span>
+                    <span class="section-description">
+                      Study at your own pace or add a time challenge.
+                    </span>
+                  </span>
+                </legend>
+
+                <div class="choice-grid timer-grid">
+                  <label class="choice-card timer-choice-card">
+                    <input
+                      type="radio"
+                      name="timerChoice"
+                      value="off"
+                      checked
+                    />
+                    <span class="choice-card-content">
+                      <span class="choice-card-top">
+                        <span class="choice-icon" aria-hidden="true">∞</span>
+                        <span class="choice-check" aria-hidden="true">✓</span>
+                      </span>
+                      <span class="choice-title">No timer</span>
+                      <span class="choice-description">Take your time.</span>
+                    </span>
+                  </label>
+
+                  <label class="choice-card timer-choice-card">
+                    <input type="radio" name="timerChoice" value="countdown" />
+                    <span class="choice-card-content">
+                      <span class="choice-card-top">
+                        <span class="choice-icon" aria-hidden="true">◷</span>
+                        <span class="choice-check" aria-hidden="true">✓</span>
+                      </span>
+                      <span class="choice-title">Countdown</span>
+                      <span class="choice-description">Race the clock.</span>
+                    </span>
+                  </label>
+
+                  <label class="choice-card timer-choice-card">
+                    <input type="radio" name="timerChoice" value="countup" />
+                    <span class="choice-card-content">
+                      <span class="choice-card-top">
+                        <span class="choice-icon" aria-hidden="true">↗</span>
+                        <span class="choice-check" aria-hidden="true">✓</span>
+                      </span>
+                      <span class="choice-title">Count up</span>
+                      <span class="choice-description">Track your time.</span>
+                    </span>
+                  </label>
+                </div>
+
+                <div id="timerDurationLabel" class="timer-duration-field">
+                  <label for="timerDuration" class="field-label"
+                    >Countdown duration</label
+                  >
+                  <select
+                    id="timerDuration"
+                    name="timerDuration"
+                    class="form-control"
+                  >
+                    <option value="60">1 minute</option>
+                    <option value="120" selected>2 minutes</option>
+                    <option value="180">3 minutes</option>
+                    <option value="300">5 minutes</option>
+                    <option value="600">10 minutes</option>
+                    <option value="900">15 minutes</option>
+                  </select>
+                  <p class="field-helper">
+                    The countdown begins when you start the quiz.
+                  </p>
+                </div>
+              </fieldset>
+
+              <div
+                id="setupFeedback"
+                class="feedback-message"
+                role="status"
+                aria-live="polite"
+                hidden
+              ></div>
+
+              <div class="setup-submit">
+                <div class="setup-submit-copy">
+                  <span class="submit-title">Ready to practice?</span>
+                  <span class="submit-description"
+                    >Your study session starts when you do.</span
+                  >
+                </div>
+                <button
+                  id="startQuizButton"
+                  type="submit"
+                  class="button button-primary"
+                >
+                  Start quiz <span aria-hidden="true">→</span>
+                </button>
+              </div>
+            </form>
+
+            <p class="setup-footnote">
+              For educational practice. Always verify medication information
+              against appropriate clinical references.
+            </p>
+          </div>
+        </section>
+
+        <!-- SCREEN 2: MATCHING GAME -->
+        <section
+          id="gameScreen"
+          class="screen game-screen"
+          aria-labelledby="gameTitle"
+          hidden
+        >
+          <div class="game-topbar">
+            <button
+              id="backToSetupButton"
+              type="button"
+              class="button button-quiet"
+            >
+              <span aria-hidden="true">←</span> Back to setup
+            </button>
+
+            <div class="game-session-label">
+              <span class="status-dot" aria-hidden="true"></span>
+              Study session in progress
+            </div>
+
+            <button
+              id="resetGameButton"
+              type="button"
+              class="button button-outline"
+            >
+              New game
+            </button>
+          </div>
+
+          <div class="game-heading">
+            <div>
+              <p class="eyebrow">YOUR STUDY SESSION</p>
+              <h1 id="gameTitle">Match the medications</h1>
+              <p id="gameSubtitle" class="game-subtitle">
+                Match each medication with its correct counterpart.
+              </p>
+            </div>
+
+            <div id="gameCategoryBadge" class="category-badge">
+              <span id="gameCategorySymbol" aria-hidden="true">✚</span>
+              <span id="gameCategoryName">General medications</span>
+            </div>
+          </div>
+
+          <div class="stats-grid" aria-label="Quiz statistics">
+            <article class="stat-card">
+              <span class="stat-label">Score</span>
+              <div class="stat-value">
+                <span id="score">0</span>
+                <span class="stat-unit">pts</span>
+              </div>
+              <span class="stat-note">Correct matches</span>
+            </article>
+
+            <article class="stat-card">
+              <span class="stat-label">Progress</span>
+              <div class="stat-value">
+                <span id="answered">0</span>
+                <span class="stat-unit" id="questionTotal">/ 0</span>
+              </div>
+              <span class="stat-note">Questions answered</span>
+            </article>
+
+            <article class="stat-card">
+              <span class="stat-label">Accuracy</span>
+              <div class="stat-value"><span id="accuracy">100%</span></div>
+              <span class="stat-note">Based on all attempts</span>
+            </article>
+
+            <article class="stat-card">
+              <span class="stat-label">Wrong attempts</span>
+              <div class="stat-value">
+                <span id="wrongAttempts">0</span>
+              </div>
+              <span class="stat-note">Incorrect matches tried</span>
+            </article>
+
+            <article class="stat-card stat-card-timer">
+              <span class="stat-label" id="timerDisplayLabel"
+                >Time elapsed</span
+              >
+              <div class="stat-value timer-value">
+                <span id="timer">00:00</span>
+              </div>
+              <span id="timerStatus" class="stat-note">Ready when you are</span>
+
+              <button
+                id="stopElapsedButton"
+                type="button"
+                class="button button-quiet"
+                hidden
+              >
+                Pause timer
+              </button>
+            </article>
+          </div>
+
+          <div class="progress-track" aria-label="Quiz completion">
+            <div
+              id="progressBar"
+              class="progress-bar"
+              role="progressbar"
+              aria-label="Quiz progress"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              aria-valuenow="0"
+            ></div>
+          </div>
+
+          <div
+            id="timerWarning"
+            class="timer-warning"
+            role="status"
+            aria-live="polite"
+            hidden
+          >
+            Time is running low. Keep going!
+          </div>
+
+          <section class="matching-panel" aria-labelledby="matchingHeading">
+            <div class="matching-panel-heading">
+              <div>
+                <h2 id="matchingHeading">Make your matches</h2>
+                <p id="matchingInstructions">
+                  Match each item in the first column to the correct answer.
+                </p>
+              </div>
+
+              <div class="matching-legend" aria-label="Answer indicators">
+                <span
+                  ><span class="legend-dot legend-correct"></span>Correct</span
+                >
+                <span
+                  ><span class="legend-dot legend-incorrect"></span>Try
+                  again</span
+                >
+              </div>
+            </div>
+
+            <div
+              id="gameFeedback"
+              class="game-feedback"
+              role="status"
+              aria-live="polite"
+              hidden
+            ></div>
+
+            <div
+              id="quizGrid"
+              class="quiz-grid"
+              aria-label="Medication matching board"
+            >
+              <!-- The matching controller renders the board here. -->
+            </div>
+
+            <p class="matching-hint">
+              <span aria-hidden="true">ⓘ</span>
+              On a computer, drag and drop to match. On a phone or tablet, tap a
+              medication and then its matching answer.
+            </p>
+          </section>
+
+          <div class="game-actions">
+            <button
+              id="reviewMissedButton"
+              type="button"
+              class="button button-outline"
+              hidden
+            >
+              Review missed medications
+            </button>
+            <button
+              id="finishQuizButton"
+              type="button"
+              class="button button-primary"
+              hidden
+            >
+              View results <span aria-hidden="true">→</span>
+            </button>
+          </div>
+        </section>
+
+        <!-- SCREEN 3: RESULTS AND REVIEW -->
+        <section
+          id="completion"
+          class="screen completion-screen"
+          aria-labelledby="completionTitle"
+          hidden
+        >
+          <div class="results-hero">
+            <div class="results-icon" aria-hidden="true">
+              <svg viewBox="0 0 64 64" fill="none">
+                <circle
+                  cx="32"
+                  cy="32"
+                  r="28"
+                  fill="currentColor"
+                  opacity=".12"
+                />
+                <path
+                  d="m19 32 9 9 18-19"
+                  stroke="currentColor"
+                  stroke-width="4"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </div>
+            <p class="eyebrow">SESSION COMPLETE</p>
+            <h1 id="completionTitle">Nice work!</h1>
+            <p id="completionMessage" class="completion-message">
+              You've completed your medication matching session.
+            </p>
+          </div>
+
+          <div class="results-summary">
+            <article class="result-stat-card result-stat-primary">
+              <span class="result-stat-label">Completion score</span>
+              <strong id="completionScore" class="result-stat-value">0%</strong>
+              <span class="result-stat-note"
+                >Correct matches out of total questions</span
+              >
+            </article>
+
+            <article class="result-stat-card">
+              <span class="result-stat-label">Correct matches</span>
+              <strong id="completionCorrect" class="result-stat-value"
+                >0</strong
+              >
+              <span class="result-stat-note">Questions matched correctly</span>
+            </article>
+
+            <article class="result-stat-card">
+              <span class="result-stat-label">Accuracy</span>
+              <strong id="completionAccuracy" class="result-stat-value"
+                >0%</strong
+              >
+              <span class="result-stat-note"
+                >Correct answers divided by all attempts</span
+              >
+            </article>
+
+            <article class="result-stat-card">
+              <span class="result-stat-label">Time taken</span>
+              <strong id="completionTime" class="result-stat-value"
+                >00:00</strong
+              >
+              <span class="result-stat-note">Total session time</span>
+            </article>
+          </div>
+
+          <section class="review-panel" aria-labelledby="reviewHeading">
+            <div class="review-panel-heading">
+              <div>
+                <p class="eyebrow">KEEP BUILDING YOUR KNOWLEDGE</p>
+                <h2 id="reviewHeading">Review your missed medications</h2>
+                <p id="reviewDescription">
+                  Revisit the medications that need a little more practice.
+                </p>
+              </div>
+              <span id="missedCountBadge" class="missed-count-badge"
+                >0 missed</span
+              >
+            </div>
+
+            <div id="missedEmptyState" class="empty-state" hidden>
+              <span class="empty-state-icon" aria-hidden="true">✓</span>
+              <h3>Perfect matching!</h3>
+              <p>You have no missed medications to review in this session.</p>
+            </div>
+
+            <div id="missedMedicationList" class="missed-medication-list">
+              <!-- Missed-medication review content is rendered by app.js. -->
+            </div>
+
+            <div class="review-actions">
+              <button
+                id="practiceMissedButton"
+                type="button"
+                class="button button-secondary"
+                hidden
+              >
+                Practice missed medications <span aria-hidden="true">→</span>
+              </button>
+            </div>
+          </section>
+
+          <div class="completion-actions">
+            <button
+              id="playAgainButton"
+              type="button"
+              class="button button-primary"
+            >
+              Start another quiz <span aria-hidden="true">→</span>
+            </button>
+            <button
+              id="completionSetupButton"
+              type="button"
+              class="button button-outline"
+            >
+              Change quiz settings
+            </button>
+          </div>
+        </section>
+      </main>
+
+      <footer class="app-footer">
+        <span>Medication Mastery</span>
+        <span>Practice thoughtfully. Learn confidently.</span>
+      </footer>
+    </div>
+
+    <!-- Medication data: load before controllers. -->
+    <script src="general-drugs.js"></script>
+    <script src="oncology-drugs.js"></script>
+    <script src="diabetes-drugs.js"></script>
+    <script src="antibiotics-drugs.js"></script>
+    <script src="cardiology-drugs.js"></script>
+    <script src="psychiatry-drugs.js"></script>
+
+    <!-- Existing controllers: preserve their order. -->
+    <script src="js/categories.js"></script>
+    <script src="js/quiz.js"></script>
+    <script src="js/matching.js"></script>
+    <script src="js/scoring.js"></script>
+    <script src="js/timer.js"></script>
+
+    <!-- Application coordinator. -->
+    <script src="app.js"></script>
+  </body>
+</html>

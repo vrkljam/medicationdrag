@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <link rel="stylesheet" href="styles.css" />
+
+    <title>Brand vs Generic Quiz</title>
+  </head>
+
+  <body>
+    <div class="app">
+      <header>
+        <h1>Brand vs Generic Quiz</h1>
+
+        <p id="modeDescription">
+          Match each generic medication with its correct brand name.
+        </p>
+      </header>
+
+      <!-- ============================================================
+           QUIZ CONTROLS
+           ============================================================ -->
+
+      <div class="controls">
+        <!-- DRUG LIST -->
+        <label>
+          <select id="drugCategory" onchange="newQuiz()">
+            <option value="all">● General Medications</option>
+            <option value="oncology">■ Oncology</option>
+            <option value="diabetes">▲ Diabetes</option>
+            <option value="antibiotics">◆ Antibiotics</option>
+            <option value="cardiology">♥ Cardiology</option>
+            <option value="psychiatry">✦ Psychiatry</option>
+          </select>
+        </label>
+
+        <!-- QUESTION COUNT -->
+        <label>
+          <select id="questionCount">
+            <option value="10">10 questions</option>
+            <option value="20">20 questions</option>
+            <option value="50">50 questions</option>
+            <option value="100">100 questions</option>
+            <option value="200">200 questions</option>
+          </select>
+        </label>
+
+        <label>
+          <select id="timerMode" onchange="handleTimerModeChange()">
+            <option value="off">Timer Off</option>
+            <option value="countdown">Countdown Timer</option>
+            <option value="countup">Count-Up Timer</option>
+          </select>
+        </label>
+
+        <label id="timerDurationLabel">
+          <select
+            id="timerDuration"
+            aria-label="Quiz time limit"
+            onchange="handleTimerDurationChange()"
+          >
+            <option value="1">1 minute</option>
+            <option value="2">2 minutes</option>
+            <option value="5">5 minutes</option>
+            <option value="10" selected>10 minutes</option>
+          </select>
+        </label>
+
+        <!-- QUIZ DIRECTION -->
+        <button id="reverseButton" onclick="toggleQuizMode()">
+          Reverse Quiz
+        </button>
+
+        <button
+          id="reviewMissedButton"
+          class="secondary"
+          onclick="startReviewQuiz()"
+          disabled
+        >
+          Review Missed (0)
+        </button>
+
+        <button onclick="newQuiz()">New Quiz</button>
+
+        <button class="secondary" onclick="resetQuiz()">Reset</button>
+      </div>
+
+      <!-- ============================================================
+           CURRENT CATEGORY
+           ============================================================ -->
+
+      <div id="categoryIndicator" class="category-indicator" aria-live="polite">
+        <span id="categorySymbol" class="category-symbol">●</span>
+
+        <span id="categoryText"> General Medications </span>
+      </div>
+
+      <!-- ============================================================
+           STATS
+           ============================================================ -->
+
+      <div class="stats">
+        <div class="stat">Score: <strong id="score">0</strong></div>
+
+        <div class="stat">
+          Answered:
+          <strong id="answered">0</strong> /
+          <strong id="total">0</strong>
+        </div>
+
+        <div class="stat">
+          Accuracy:
+          <strong id="accuracy">0%</strong>
+        </div>
+
+        <div class="stat timer-stat" id="timerStat" aria-live="off">
+          Countdown:
+          <strong id="timerDisplay">Off</strong>
+        </div>
+
+        <div class="stat timer-stat" id="elapsedStat" aria-live="off">
+          Elapsed:
+          <strong id="elapsedDisplay">0:00</strong>
+        </div>
+
+        <button
+          id="stopElapsedButton"
+          class="secondary"
+          onclick="stopCountUpTimer()"
+          style="display: none"
+        >
+          Stop Timer
+        </button>
+      </div>
+
+      <!-- ============================================================
+           QUIZ
+           ============================================================ -->
+
+      <div class="quiz-card">
+        <p id="instruction" class="instruction">
+          Drag each blue brand name into the empty box under its matching
+          generic name. On a phone, tap a brand and then tap its destination.
+        </p>
+
+        <div id="startPanel" class="start-panel">
+          <h2>Ready to begin?</h2>
+          <p>
+            Your choices will be revealed and the timer will start when you're
+            ready.
+          </p>
+          <button
+            id="startQuizButton"
+            class="start-quiz-button"
+            onclick="startQuiz()"
+          >
+            ▶ START QUIZ
+          </button>
+        </div>
+
+        <div id="quizGrid" class="quiz-grid"></div>
+
+        <div id="feedback" class="feedback"></div>
+
+        <div id="completion" class="completion">
+          <h2>Quiz Complete!</h2>
+
+          <p id="finalScore"></p>
+
+          <button onclick="newQuiz()">Start Another Quiz</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         EXTERNAL DRUG LISTS
+         ============================================================ -->
+    <script src="general-drugs.js"></script>
+    <script src="oncology-drugs.js"></script>
+    <script src="diabetes-drugs.js"></script>
+    <script src="antibiotics-drugs.js"></script>
+    <script src="cardiology-drugs.js"></script>
+    <script src="psychiatry-drugs.js"></script>
+
+    <!-- Separate application controllers -->
+    <script src="js/categories.js"></script>
+    <script src="js/quiz.js"></script>
+    <script src="js/matching.js"></script>
+    <script src="js/scoring.js"></script>
+    <script src="js/timer.js"></script>
+
+    <!-- Application coordinator; currently empty -->
+    <script src="app.js"></script>
+  </body>
+</html>

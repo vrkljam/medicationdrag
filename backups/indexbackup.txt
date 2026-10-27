@@ -1,0 +1,1436 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <link rel="stylesheet" href="styles.css" />
+
+    <title>Brand vs Generic Quiz</title>
+  </head>
+
+  <body>
+    <div class="app">
+      <header>
+        <h1>Brand vs Generic Quiz</h1>
+
+        <p id="modeDescription">
+          Match each generic medication with its correct brand name.
+        </p>
+      </header>
+
+      <!-- ============================================================
+           QUIZ CONTROLS
+           ============================================================ -->
+
+      <div class="controls">
+        <!-- DRUG LIST -->
+        <label>
+          <select id="drugCategory" onchange="newQuiz()">
+            <option value="all">● General Medications</option>
+            <option value="oncology">■ Oncology</option>
+            <option value="diabetes">▲ Diabetes</option>
+            <option value="antibiotics">◆ Antibiotics</option>
+            <option value="cardiology">♥ Cardiology</option>
+            <option value="psychiatry">✦ Psychiatry</option>
+          </select>
+        </label>
+
+        <!-- QUESTION COUNT -->
+        <label>
+          <select id="questionCount">
+            <option value="10">10 questions</option>
+            <option value="20">20 questions</option>
+            <option value="50">50 questions</option>
+            <option value="100">100 questions</option>
+            <option value="200">200 questions</option>
+          </select>
+        </label>
+
+        <label>
+          <select id="timerMode" onchange="handleTimerModeChange()">
+            <option value="off">Timer Off</option>
+            <option value="countdown">Countdown Timer</option>
+            <option value="countup">Count-Up Timer</option>
+          </select>
+        </label>
+
+        <label id="timerDurationLabel">
+          <select
+            id="timerDuration"
+            aria-label="Quiz time limit"
+            onchange="handleTimerDurationChange()"
+          >
+            <option value="1">1 minute</option>
+            <option value="2">2 minutes</option>
+            <option value="5">5 minutes</option>
+            <option value="10" selected>10 minutes</option>
+          </select>
+        </label>
+
+        <!-- QUIZ DIRECTION -->
+        <button id="reverseButton" onclick="toggleQuizMode()">
+          Reverse Quiz
+        </button>
+
+        <button
+          id="reviewMissedButton"
+          class="secondary"
+          onclick="startReviewQuiz()"
+          disabled
+        >
+          Review Missed (0)
+        </button>
+
+        <button onclick="newQuiz()">New Quiz</button>
+
+        <button class="secondary" onclick="resetQuiz()">Reset</button>
+      </div>
+
+      <!-- ============================================================
+           CURRENT CATEGORY
+           ============================================================ -->
+
+      <div id="categoryIndicator" class="category-indicator" aria-live="polite">
+        <span id="categorySymbol" class="category-symbol">●</span>
+
+        <span id="categoryText"> General Medications </span>
+      </div>
+
+      <!-- ============================================================
+           STATS
+           ============================================================ -->
+
+      <div class="stats">
+        <div class="stat">Score: <strong id="score">0</strong></div>
+
+        <div class="stat">
+          Answered:
+          <strong id="answered">0</strong> /
+          <strong id="total">0</strong>
+        </div>
+
+        <div class="stat">
+          Accuracy:
+          <strong id="accuracy">0%</strong>
+        </div>
+
+        <div class="stat timer-stat" id="timerStat" aria-live="off">
+          Countdown:
+          <strong id="timerDisplay">Off</strong>
+        </div>
+
+        <div class="stat timer-stat" id="elapsedStat" aria-live="off">
+          Elapsed:
+          <strong id="elapsedDisplay">0:00</strong>
+        </div>
+
+        <button
+          id="stopElapsedButton"
+          class="secondary"
+          onclick="stopCountUpTimer()"
+          style="display: none"
+        >
+          Stop Timer
+        </button>
+      </div>
+
+      <!-- ============================================================
+           QUIZ
+           ============================================================ -->
+
+      <div class="quiz-card">
+        <p id="instruction" class="instruction">
+          Drag each blue brand name into the empty box under its matching
+          generic name. On a phone, tap a brand and then tap its destination.
+        </p>
+
+        <div id="startPanel" class="start-panel">
+          <h2>Ready to begin?</h2>
+          <p>
+            Your choices will be revealed and the timer will start when you're
+            ready.
+          </p>
+          <button
+            id="startQuizButton"
+            class="start-quiz-button"
+            onclick="startQuiz()"
+          >
+            ▶ START QUIZ
+          </button>
+        </div>
+
+        <div id="quizGrid" class="quiz-grid"></div>
+
+        <div id="feedback" class="feedback"></div>
+
+        <div id="completion" class="completion">
+          <h2>Quiz Complete!</h2>
+
+          <p id="finalScore"></p>
+
+          <button onclick="newQuiz()">Start Another Quiz</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         EXTERNAL DRUG LISTS
+         ============================================================ -->
+    <script src="general-drugs.js"></script>
+    <script src="oncology-drugs.js"></script>
+    <script src="diabetes-drugs.js"></script>
+    <script src="antibiotics-drugs.js"></script>
+    <script src="cardiology-drugs.js"></script>
+    <script src="psychiatry-drugs.js"></script>
+
+    <!-- Separate application controllers -->
+    <script src="js/categories.js"></script>
+    <script src="js/quiz.js"></script>
+    <script src="js/matching.js"></script>
+    <script src="js/scoring.js"></script>
+    <script src="js/timer.js"></script>
+
+    <!-- Application coordinator; currently empty -->
+    <script src="app.js"></script>
+
+    <script>
+      /*
+       * ============================================================
+       * APP STATE
+       * ============================================================
+       */
+
+      let currentQuiz = [];
+      let quizStarted = false;
+
+      /*
+       * TEMPORARY MISSED-MEDICATION TRACKING
+       */
+
+      // Stores missed medication objects, without duplicates.
+      let missedMedications = new Map();
+
+      // True while the user is taking a missed-medications quiz.
+      let reviewMode = false;
+
+      // Tracks which medications are still eligible to be
+      // removed from the missed list by a first-try correct answer.
+      let reviewFirstAttempt = new Set();
+
+      // Give each medication a stable key.
+      function medicationKey(item) {
+        return `${item.generic}|||${item.brand}`;
+      }
+
+      // Update the button and its count.
+      function updateReviewButton() {
+        const button = document.getElementById("reviewMissedButton");
+
+        if (!button) return;
+
+        button.textContent = `Review Missed (${missedMedications.size})`;
+        button.disabled = missedMedications.size === 0;
+      }
+
+      // Fixed: use one variable name consistently.
+      let selectedAnswer = null;
+
+      let score = 0;
+      let answered = 0;
+
+      //   XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      /*
+       * ============================================================
+       * COUNTDOWN TIMER AND COUNT-UP TIMER
+       * ============================================================
+       */
+
+      let timerInterval = null;
+      let timerDeadline = null;
+      let remainingTimeMs = null;
+      let quizExpired = false;
+      let quizFinished = false;
+
+      let elapsedInterval = null;
+      let elapsedStartTime = null;
+      let elapsedTimeMs = 0;
+
+      function selectedDurationMs() {
+        return (
+          Number(document.getElementById("timerDuration").value) * 60 * 1000
+        );
+      }
+
+      function stopQuizTimer() {
+        if (timerInterval !== null) {
+          clearInterval(timerInterval);
+          timerInterval = null;
+        }
+
+        timerDeadline = null;
+      }
+
+      function renderTimer() {
+        const display = document.getElementById("timerDisplay");
+        const stat = document.getElementById("timerStat");
+        const mode = document.getElementById("timerMode").value;
+
+        if (mode === "off") {
+          display.textContent = "Off";
+          stat.classList.remove("urgent");
+          document.body.classList.remove("timer-warning");
+          return;
+        }
+
+        if (mode === "countup") {
+          const totalSeconds = Math.floor(elapsedTimeMs / 1000);
+          const minutes = Math.floor(totalSeconds / 60);
+          const seconds = totalSeconds % 60;
+
+          display.textContent = `${minutes}:${String(seconds).padStart(2, "0")}`;
+
+          stat.classList.remove("urgent");
+          document.body.classList.remove("timer-warning");
+          return;
+        }
+
+        const ms = Math.max(0, remainingTimeMs ?? selectedDurationMs());
+        const totalSeconds = Math.ceil(ms / 1000);
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+
+        display.textContent = `${minutes}:${String(seconds).padStart(2, "0")}`;
+
+        const urgent =
+          quizStarted && ms > 0 && ms <= 10000 && !quizExpired && !quizFinished;
+
+        stat.classList.toggle("urgent", urgent);
+        document.body.classList.toggle("timer-warning", urgent);
+      }
+
+      function renderElapsedTimer() {
+        const totalSeconds = Math.floor(elapsedTimeMs / 1000);
+        const seconds = totalSeconds % 60;
+        const totalMinutes = Math.floor(totalSeconds / 60);
+        const minutes = totalMinutes % 60;
+        const hours = Math.floor(totalMinutes / 60);
+
+        const formatted =
+          hours > 0
+            ? `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`
+            : `${totalMinutes}:${String(seconds).padStart(2, "0")}`;
+
+        document.getElementById("elapsedDisplay").textContent = formatted;
+      }
+
+      function updateCountUpButton() {
+        const button = document.getElementById("stopElapsedButton");
+
+        if (!button) return;
+
+        const isCountUp =
+          document.getElementById("timerMode").value === "countup";
+
+        const quizActive = quizStarted && !quizFinished && !quizExpired;
+
+        // Only show the button during an active Count-Up quiz.
+        button.style.display = isCountUp && quizActive ? "" : "none";
+
+        // Never allow restarting after the quiz has ended.
+        button.disabled = !isCountUp || !quizActive;
+
+        // Match the label to the timer's actual state.
+        button.textContent =
+          elapsedInterval !== null ? "Stop Timer" : "Start Timer";
+      }
+
+      function startElapsedTimer() {
+        // Do not start or resume after the quiz has ended.
+        if (!quizStarted || quizFinished || quizExpired) {
+          updateCountUpButton();
+          return;
+        }
+
+        // Do not create duplicate intervals.
+        if (elapsedInterval !== null) {
+          updateCountUpButton();
+          return;
+        }
+
+        // Resume from the saved elapsed time.
+        elapsedStartTime = Date.now() - elapsedTimeMs;
+
+        elapsedInterval = setInterval(() => {
+          elapsedTimeMs = Date.now() - elapsedStartTime;
+          renderElapsedTimer();
+          renderTimer();
+        }, 200);
+
+        updateCountUpButton();
+      }
+
+      function stopElapsedTimer() {
+        if (elapsedInterval !== null) {
+          clearInterval(elapsedInterval);
+          elapsedInterval = null;
+        }
+
+        // Save the elapsed time at the moment the timer stops.
+        if (elapsedStartTime !== null) {
+          elapsedTimeMs = Date.now() - elapsedStartTime;
+          elapsedStartTime = null;
+        }
+
+        renderElapsedTimer();
+        renderTimer();
+        updateCountUpButton();
+      }
+
+      function stopCountUpTimer() {
+        if (!quizStarted || quizFinished || quizExpired) {
+          updateCountUpButton();
+          return;
+        }
+
+        if (document.getElementById("timerMode").value !== "countup") {
+          updateCountUpButton();
+          return;
+        }
+
+        if (elapsedInterval !== null) {
+          // Running → stopped.
+          stopElapsedTimer();
+        } else {
+          // Stopped → running, preserving elapsedTimeMs.
+          startElapsedTimer();
+        }
+      }
+
+      function startQuizTimer(
+        durationMs = remainingTimeMs ?? selectedDurationMs(),
+      ) {
+        stopQuizTimer();
+
+        const mode = document.getElementById("timerMode").value;
+
+        if (mode !== "countdown") {
+          remainingTimeMs = null;
+          renderTimer();
+          return;
+        }
+
+        if (!quizStarted || quizExpired || quizFinished) {
+          remainingTimeMs = durationMs;
+          renderTimer();
+          return;
+        }
+
+        remainingTimeMs = durationMs;
+        timerDeadline = Date.now() + durationMs;
+
+        renderTimer();
+
+        timerInterval = setInterval(() => {
+          remainingTimeMs = Math.max(0, timerDeadline - Date.now());
+
+          if (remainingTimeMs <= 0) {
+            remainingTimeMs = 0;
+            stopQuizTimer();
+            expireQuiz();
+            return;
+          }
+
+          renderTimer();
+        }, 200);
+      }
+
+      function handleTimerModeChange() {
+        const mode = document.getElementById("timerMode").value;
+        const durationLabel = document.getElementById("timerDurationLabel");
+
+        // Show duration options only for countdown mode.
+        durationLabel.style.display = mode === "countdown" ? "" : "none";
+
+        // Stop any previously running timer when changing modes.
+        stopQuizTimer();
+        stopElapsedTimer();
+
+        // The quiz has ended: don't allow another timer to start.
+        if (quizFinished || quizExpired) {
+          updateCountUpButton();
+          renderTimer();
+          return;
+        }
+
+        // Before START QUIZ, prepare the timer without starting it.
+        if (!quizStarted) {
+          remainingTimeMs = mode === "countdown" ? selectedDurationMs() : null;
+
+          elapsedTimeMs = 0;
+
+          renderElapsedTimer();
+          renderTimer();
+          updateCountUpButton();
+          return;
+        }
+
+        // The quiz is already active.
+        if (mode === "countdown") {
+          remainingTimeMs = selectedDurationMs();
+          startQuizTimer(remainingTimeMs);
+        } else if (mode === "countup") {
+          remainingTimeMs = null;
+          startElapsedTimer();
+        } else {
+          remainingTimeMs = null;
+        }
+
+        renderTimer();
+        updateCountUpButton();
+      }
+
+      function handleTimerDurationChange() {
+        // Changing the duration only prepares the countdown.
+        // It does not start the clock or interrupt a running quiz.
+        if (!quizStarted || quizFinished || quizExpired) {
+          remainingTimeMs =
+            document.getElementById("timerMode").value === "countdown"
+              ? selectedDurationMs()
+              : null;
+
+          renderTimer();
+        }
+      }
+
+      function startQuiz() {
+        if (quizStarted || quizExpired || quizFinished) return;
+
+        quizStarted = true;
+
+        document.getElementById("startPanel").style.display = "none";
+
+        // Reveal the answer bank now that the quiz has started.
+        renderQuiz();
+
+        // // The count-up clock always starts, even if countdown is disabled.
+        // startElapsedTimer();
+
+        const mode = document.getElementById("timerMode").value;
+
+        if (mode === "countdown") {
+          startQuizTimer(remainingTimeMs ?? selectedDurationMs());
+        } else if (mode === "countup") {
+          startElapsedTimer();
+          renderTimer();
+        } else {
+          renderTimer();
+        }
+      }
+
+      function expireQuiz() {
+        if (quizExpired || quizFinished) return;
+
+        quizExpired = true;
+        selectedAnswer = null;
+
+        stopQuizTimer();
+
+        document.querySelectorAll(".brand.selected").forEach((el) => {
+          el.classList.remove("selected");
+        });
+
+        document.getElementById("feedback").textContent =
+          "Time is up! Your quiz has ended.";
+
+        document.getElementById("feedback").className = "feedback error";
+
+        renderTimer();
+        finishQuiz();
+      }
+
+      //   XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      let currentDirection = "generic-to-brand";
+
+      let activeMedicationData = generalMedicationData;
+
+      // false = normal
+      // true = reverse
+      let reverseMode = false;
+
+      /*
+       * ============================================================
+       * UPDATE CATEGORY COLOR + ACCESSIBILITY INDICATORS
+       * ============================================================
+       */
+
+      function updateCategoryColor() {
+        const category = document.getElementById("drugCategory").value;
+
+        if (typeof window.updateCategoryPresentation === "function") {
+          window.updateCategoryPresentation(category);
+        }
+      }
+
+      /*
+       * ============================================================
+       * GET ACTIVE DRUG LIST
+       * ============================================================
+       */
+
+      function getActiveMedicationData() {
+        const category = document.getElementById("drugCategory").value;
+
+        if (
+          category === "oncology" &&
+          typeof oncologyMedicationData !== "undefined"
+        ) {
+          return oncologyMedicationData;
+        }
+
+        if (
+          category === "diabetes" &&
+          typeof diabetesMedicationData !== "undefined"
+        ) {
+          return diabetesMedicationData;
+        }
+
+        if (
+          category === "antibiotics" &&
+          typeof antibioticsMedicationData !== "undefined"
+        ) {
+          return antibioticsMedicationData;
+        }
+
+        if (
+          category === "cardiology" &&
+          typeof cardiologyMedicationData !== "undefined"
+        ) {
+          return cardiologyMedicationData;
+        }
+        if (
+          category === "psychiatry" &&
+          typeof psychiatryMedicationData !== "undefined"
+        ) {
+          return psychiatryMedicationData;
+        }
+
+        return generalMedicationData;
+      }
+
+      /*
+       * ============================================================
+       * SHUFFLE
+       * ============================================================
+       */
+
+      function shuffle(array) {
+        const copy = [...array];
+
+        for (let i = copy.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+
+          [copy[i], copy[j]] = [copy[j], copy[i]];
+        }
+
+        return copy;
+      }
+
+      /*
+       * ============================================================
+       * START NEW QUIZ
+       * ============================================================
+       */
+
+      function newQuiz() {
+        stopQuizTimer();
+        stopElapsedTimer();
+        elapsedTimeMs = 0;
+
+        const stopButton = document.getElementById("stopElapsedButton");
+        stopButton.style.display = "none";
+        stopButton.textContent = "Stop Timer";
+        stopButton.disabled = false;
+        elapsedStartTime = null;
+        quizStarted = false;
+
+        document.getElementById("startPanel").style.display = "block";
+
+        remainingTimeMs =
+          document.getElementById("timerMode").value === "countdown"
+            ? selectedDurationMs()
+            : null;
+
+        renderElapsedTimer();
+
+        reviewMode = false;
+        reviewFirstAttempt.clear();
+
+        quizExpired = false;
+        quizFinished = false;
+
+        selectedAnswer = null;
+
+        updateCategoryColor();
+
+        const requested = Number(
+          document.getElementById("questionCount").value,
+        );
+
+        activeMedicationData = getActiveMedicationData();
+
+        const count = Math.min(requested, activeMedicationData.length);
+
+        currentQuiz = shuffle(activeMedicationData).slice(0, count);
+
+        // TEMPORARY: Check the selected quiz for duplicate medication names.
+        const duplicateValues = (field) => {
+          const counts = new Map();
+
+          currentQuiz.forEach((item) => {
+            const value = item[field].trim().toLowerCase();
+            counts.set(value, (counts.get(value) || 0) + 1);
+          });
+
+          return [...counts.entries()]
+            .filter(([, count]) => count > 1)
+            .map(([name, count]) => ({ name, count }));
+        };
+
+        console.log("Selected quiz data check:", {
+          selectedItems: currentQuiz.length,
+          duplicateGenerics: duplicateValues("generic"),
+          duplicateBrands: duplicateValues("brand"),
+        });
+
+        score = 0;
+        answered = 0;
+
+        document.getElementById("total").textContent = count;
+        document.getElementById("completion").style.display = "none";
+        document.getElementById("feedback").textContent = "";
+
+        updateStats();
+        updateReviewButton();
+        updateModeText();
+        renderQuiz();
+
+        // startQuizTimer();
+        renderTimer();
+      }
+
+      function startReviewQuiz() {
+        if (missedMedications.size === 0) {
+          updateReviewButton();
+          return;
+        }
+
+        stopQuizTimer();
+        stopElapsedTimer();
+        elapsedTimeMs = 0;
+        const stopButton = document.getElementById("stopElapsedButton");
+        stopButton.style.display = "none";
+        stopButton.textContent = "Stop Timer";
+        stopButton.disabled = false;
+        elapsedStartTime = null;
+        quizStarted = false;
+
+        document.getElementById("startPanel").style.display = "block";
+
+        remainingTimeMs =
+          document.getElementById("timerMode").value === "countdown"
+            ? selectedDurationMs()
+            : null;
+
+        renderElapsedTimer();
+
+        reviewMode = true;
+        quizExpired = false;
+        quizFinished = false;
+
+        currentQuiz = shuffle([...missedMedications.values()]);
+
+        reviewFirstAttempt = new Set(currentQuiz.map(medicationKey));
+
+        score = 0;
+        answered = 0;
+        selectedAnswer = null;
+
+        document.getElementById("total").textContent = currentQuiz.length;
+
+        document.getElementById("completion").style.display = "none";
+        document.getElementById("feedback").textContent = "";
+
+        updateStats();
+        updateReviewButton();
+        updateModeText();
+        renderQuiz();
+
+        showFeedback(
+          "Review mode: answer each medication correctly on your first try to clear it from your missed list.",
+          true,
+        );
+
+        // startQuizTimer();
+        renderTimer();
+      }
+      /*
+       * ============================================================
+       * TOGGLE NORMAL / REVERSE QUIZ
+       * ============================================================
+       */
+
+      function toggleQuizMode() {
+        if (quizExpired || quizFinished) return;
+
+        const timerEnabled =
+          document.getElementById("timerMode").value !== "off";
+        const wasStarted = quizStarted;
+
+        const preservedTime = timerEnabled
+          ? wasStarted && timerDeadline !== null
+            ? Math.max(0, timerDeadline - Date.now())
+            : (remainingTimeMs ?? selectedDurationMs())
+          : null;
+
+        if (timerEnabled && wasStarted && preservedTime <= 0) {
+          expireQuiz();
+          return;
+        }
+
+        reverseMode = !reverseMode;
+
+        if (!reviewMode) {
+          newQuiz();
+
+          if (timerEnabled) {
+            remainingTimeMs = preservedTime;
+            renderTimer();
+          }
+
+          return;
+        }
+
+        const remaining = currentQuiz.filter((item) =>
+          missedMedications.has(medicationKey(item)),
+        );
+
+        if (remaining.length === 0) {
+          reviewMode = false;
+          newQuiz();
+
+          if (timerEnabled) {
+            remainingTimeMs = preservedTime;
+            renderTimer();
+          }
+
+          return;
+        }
+
+        currentQuiz = shuffle(remaining);
+
+        reviewFirstAttempt = new Set(
+          [...reviewFirstAttempt].filter((key) =>
+            currentQuiz.some((item) => medicationKey(item) === key),
+          ),
+        );
+
+        // Changing direction resets progress and returns to the start screen.
+        stopQuizTimer();
+        stopElapsedTimer();
+
+        quizStarted = false;
+        elapsedTimeMs = 0;
+        elapsedStartTime = null;
+        selectedAnswer = null;
+        score = 0;
+        answered = 0;
+
+        remainingTimeMs = timerEnabled ? preservedTime : null;
+
+        document.getElementById("startPanel").style.display = "block";
+        document.getElementById("total").textContent = currentQuiz.length;
+        document.getElementById("completion").style.display = "none";
+        document.getElementById("feedback").textContent = "";
+
+        updateStats();
+        updateModeText();
+        renderQuiz();
+        renderElapsedTimer();
+        renderTimer();
+      }
+
+      /*
+       * ============================================================
+       * UPDATE MODE TEXT
+       * ============================================================
+       */
+
+      function updateModeText() {
+        const instruction = document.getElementById("instruction");
+        const description = document.getElementById("modeDescription");
+        const reverseButton = document.getElementById("reverseButton");
+
+        reverseButton.textContent = reverseMode
+          ? "Normal Quiz"
+          : "Reverse Quiz";
+
+        if (reviewMode) {
+          description.textContent = reverseMode
+            ? "Review missed medications: match brand names with generic names."
+            : "Review missed medications: match generic names with brand names.";
+
+          instruction.textContent = reverseMode
+            ? "Drag each generic answer into the empty spot beside its matching brand name. On a phone, tap the answer and then its destination."
+            : "Drag each brand answer into the empty spot beside its matching generic name. On a phone, tap the answer and then its destination.";
+
+          return;
+        }
+
+        if (reverseMode) {
+          description.textContent =
+            "Match each brand-name medication with its correct generic name.";
+
+          instruction.textContent =
+            "Drag each generic name into the empty box beside its matching brand name. On a phone, tap a generic name and then tap its destination.";
+        } else {
+          description.textContent =
+            "Match each generic medication with its correct brand name.";
+
+          instruction.textContent =
+            "Drag each brand name into the empty box beside its matching generic name. On a phone, tap a brand and then tap its destination.";
+        }
+      }
+
+      /*
+       * ============================================================
+       * RENDER QUIZ
+       * ============================================================
+       */
+
+      function renderQuiz() {
+        const grid = document.getElementById("quizGrid");
+
+        grid.innerHTML = "";
+
+        // Shuffle the answers independently from the questions.
+        const randomizedAnswers = shuffle(currentQuiz);
+
+        // Create the three columns.
+        const questionColumn = document.createElement("div");
+        questionColumn.className = "column";
+
+        const dropColumn = document.createElement("div");
+        dropColumn.className = "column";
+
+        const answerColumn = document.createElement("div");
+
+        answerColumn.className = quizStarted
+          ? "column answer-column"
+          : "column answer-column answers-hidden";
+
+        // Column headings change with the quiz direction.
+        const questionHeading = document.createElement("div");
+        questionHeading.className = "column-heading";
+        questionHeading.textContent = reverseMode
+          ? "Brand Name"
+          : "Generic Name";
+
+        const dropHeading = document.createElement("div");
+        dropHeading.className = "column-heading";
+        dropHeading.textContent = "Your Answer";
+
+        const answerHeading = document.createElement("div");
+        answerHeading.className = "column-heading";
+        answerHeading.textContent = reverseMode
+          ? "Generic Answers"
+          : "Brand Answers";
+
+        questionColumn.appendChild(questionHeading);
+        dropColumn.appendChild(dropHeading);
+        answerColumn.appendChild(answerHeading);
+
+        // COLUMN 1: Questions.
+        currentQuiz.forEach((item) => {
+          const question = document.createElement("div");
+          question.className = "generic";
+
+          question.textContent = reverseMode ? item.brand : item.generic;
+
+          questionColumn.appendChild(question);
+        });
+
+        // COLUMN 2: Matching drop zones.
+        currentQuiz.forEach((item) => {
+          const drop = document.createElement("div");
+          drop.className = "drop-zone";
+
+          drop.textContent = "Drop answer here";
+
+          // Store the correct answer for this question.
+          drop.dataset.answer = reverseMode ? item.generic : item.brand;
+          drop.dataset.medicationKey = medicationKey(item);
+
+          setupDropZone(drop);
+
+          dropColumn.appendChild(drop);
+        });
+
+        // COLUMN 3: Shared, independently randomized answer bank.
+        randomizedAnswers.forEach((item) => {
+          const answer = document.createElement("div");
+          answer.className = "brand";
+
+          answer.textContent = reverseMode ? item.generic : item.brand;
+
+          answer.dataset.answer = reverseMode ? item.generic : item.brand;
+
+          answer.draggable = true;
+
+          setupAnswer(answer);
+
+          answerColumn.appendChild(answer);
+        });
+
+        // Display the columns side by side.
+        grid.appendChild(questionColumn);
+        grid.appendChild(dropColumn);
+        grid.appendChild(answerColumn);
+
+        // TEMPORARY DIAGNOSTIC: verify all three quiz columns.
+        console.log("Quiz column diagnostic:", {
+          expectedQuestions: currentQuiz.length,
+          questionColumnItems:
+            questionColumn.querySelectorAll(".generic").length,
+          dropZoneItems: dropColumn.querySelectorAll(".drop-zone").length,
+          answerBankItems: answerColumn.querySelectorAll(".brand").length,
+          duplicateAnswerLabels: [...answerColumn.querySelectorAll(".brand")]
+            .map((el) => el.textContent.trim())
+            .filter((label, index, labels) => labels.indexOf(label) !== index),
+        });
+      }
+
+      /*
+       * ============================================================
+       * SETUP MOVABLE ANSWER
+       * ============================================================
+       */
+
+      function setupAnswer(answer) {
+        /*
+         * Desktop drag.
+         */
+
+        answer.addEventListener("dragstart", (event) => {
+          if (answer.classList.contains("used")) {
+            event.preventDefault();
+            return;
+          }
+
+          event.dataTransfer.setData("text/plain", answer.dataset.answer);
+
+          event.dataTransfer.effectAllowed = "move";
+
+          answer.classList.add("dragging");
+
+          startAutoScroll();
+        });
+
+        answer.addEventListener("dragend", () => {
+          answer.classList.remove("dragging");
+
+          stopAutoScroll();
+        });
+
+        /*
+         * Phone / touch selection.
+         */
+
+        answer.addEventListener("click", () => {
+          if (answer.classList.contains("used")) {
+            return;
+          }
+
+          document
+            .querySelectorAll(".brand.selected")
+            .forEach((el) => el.classList.remove("selected"));
+
+          selectedAnswer = answer;
+
+          answer.classList.add("selected");
+
+          document.getElementById("feedback").textContent = reverseMode
+            ? "Now tap the empty spot for this generic name."
+            : "Now tap the empty spot for this brand.";
+
+          document.getElementById("feedback").className = "feedback";
+        });
+      }
+
+      /*
+       * ============================================================
+       * DROP ZONES
+       * ============================================================
+       */
+
+      function setupDropZone(drop) {
+        /*
+         * Desktop dragover.
+         */
+
+        drop.addEventListener("dragover", (event) => {
+          event.preventDefault();
+
+          if (drop.classList.contains("correct")) {
+            return;
+          }
+
+          drop.classList.add("drag-over");
+        });
+
+        drop.addEventListener("dragleave", () => {
+          drop.classList.remove("drag-over");
+        });
+
+        /*
+         * Desktop drop.
+         */
+
+        drop.addEventListener("drop", (event) => {
+          event.preventDefault();
+
+          drop.classList.remove("drag-over");
+
+          stopAutoScroll();
+
+          const answerName = event.dataTransfer.getData("text/plain");
+
+          const answerElement = [...document.querySelectorAll(".brand")].find(
+            (el) =>
+              el.dataset.answer === answerName &&
+              !el.classList.contains("used"),
+          );
+
+          if (answerElement) {
+            checkAnswer(drop, answerElement);
+          }
+        });
+
+        /*
+         * Mobile tap destination.
+         */
+
+        drop.addEventListener("click", () => {
+          if (!selectedAnswer) {
+            return;
+          }
+
+          checkAnswer(drop, selectedAnswer);
+
+          selectedAnswer = null;
+        });
+      }
+
+      /*
+       * ============================================================
+       * CHECK ANSWER
+       * ============================================================
+       */
+
+      function checkAnswer(drop, answerElement) {
+        if (!quizStarted || quizExpired || quizFinished) return;
+        if (drop.classList.contains("correct")) {
+          return;
+        }
+
+        const selectedAnswerName = answerElement.dataset.answer;
+        const correctAnswer = drop.dataset.answer;
+        const questionKey = drop.dataset.medicationKey;
+
+        const questionItem = currentQuiz.find(
+          (item) => medicationKey(item) === questionKey,
+        );
+
+        if (selectedAnswerName === correctAnswer) {
+          // CORRECT ANSWER
+
+          drop.textContent = selectedAnswerName;
+          drop.classList.remove("incorrect");
+          drop.classList.add("correct");
+
+          answerElement.classList.remove("selected");
+          answerElement.classList.add("used");
+
+          // Clear a missed medication only if this was its
+          // first attempt during the current review round.
+          if (reviewMode) {
+            if (reviewFirstAttempt.has(questionKey)) {
+              missedMedications.delete(questionKey);
+            }
+
+            reviewFirstAttempt.delete(questionKey);
+          }
+
+          score++;
+          answered++;
+
+          showFeedback("Correct!", true);
+
+          updateStats();
+          updateReviewButton();
+
+          if (answered === currentQuiz.length) {
+            finishQuiz();
+          }
+        } else {
+          // INCORRECT ANSWER
+
+          // Record the medication once, even after repeated mistakes.
+          if (questionItem) {
+            missedMedications.set(questionKey, questionItem);
+          }
+
+          // The first attempt has now been used up.
+          if (reviewMode) {
+            reviewFirstAttempt.delete(questionKey);
+          }
+
+          drop.classList.remove("incorrect");
+
+          void drop.offsetWidth;
+
+          drop.classList.add("incorrect");
+
+          showFeedback(
+            reverseMode
+              ? "Not quite — try another generic name."
+              : "Not quite — try another brand.",
+            false,
+          );
+
+          updateStats();
+          updateReviewButton();
+        }
+      }
+
+      /*
+       * ============================================================
+       * FEEDBACK
+       * ============================================================
+       */
+
+      function showFeedback(message, success) {
+        const feedback = document.getElementById("feedback");
+
+        feedback.textContent = message;
+
+        feedback.className = success ? "feedback success" : "feedback error";
+      }
+
+      /*
+       * ============================================================
+       * STATS
+       * ============================================================
+       */
+
+      function updateStats() {
+        document.getElementById("score").textContent = score;
+
+        document.getElementById("answered").textContent = answered;
+
+        const accuracy =
+          answered === 0 ? 0 : Math.round((score / answered) * 100);
+
+        document.getElementById("accuracy").textContent = accuracy + "%";
+      }
+
+      /*
+       * ============================================================
+       * COMPLETE
+       * ============================================================
+       */
+
+      function finishQuiz() {
+        if (quizFinished) return;
+
+        quizFinished = true;
+
+        stopQuizTimer();
+        stopElapsedTimer();
+
+        // Remove the warning glow when the quiz is over.
+        document.body.classList.remove("timer-warning");
+
+        renderTimer();
+
+        setTimeout(() => {
+          const percentage = currentQuiz.length
+            ? Math.round((score / currentQuiz.length) * 100)
+            : 0;
+
+          document.getElementById("finalScore").textContent =
+            `You scored ${score} out of ${currentQuiz.length} (${percentage}%).`;
+
+          document.getElementById("completion").style.display = "block";
+        }, 300);
+      }
+
+      /*
+       * ============================================================
+       * RESET
+       * ============================================================
+       */
+
+      function resetQuiz() {
+        stopQuizTimer();
+        stopElapsedTimer();
+
+        quizStarted = false;
+        elapsedTimeMs = 0;
+        const stopButton = document.getElementById("stopElapsedButton");
+        stopButton.style.display = "none";
+        stopButton.textContent = "Stop Timer";
+        stopButton.disabled = false;
+        elapsedStartTime = null;
+
+        document.getElementById("startPanel").style.display = "block";
+
+        remainingTimeMs =
+          document.getElementById("timerMode").value === "countdown"
+            ? selectedDurationMs()
+            : null;
+
+        renderElapsedTimer();
+
+        score = 0;
+        answered = 0;
+        selectedAnswer = null;
+
+        quizExpired = false;
+        quizFinished = false;
+
+        document.getElementById("completion").style.display = "none";
+        document.getElementById("feedback").textContent = "";
+
+        if (reviewMode) {
+          currentQuiz = currentQuiz.filter((item) =>
+            missedMedications.has(medicationKey(item)),
+          );
+
+          if (currentQuiz.length === 0) {
+            reviewMode = false;
+            newQuiz();
+            return;
+          }
+        }
+
+        document.getElementById("total").textContent = currentQuiz.length;
+
+        updateStats();
+        updateReviewButton();
+        renderQuiz();
+
+        // startQuizTimer();
+        renderTimer();
+      }
+
+      /*
+       * ============================================================
+       * AUTO-SCROLL WHILE DRAGGING
+       * ============================================================
+       */
+
+      let autoScrollAnimation = null;
+
+      let autoScrollSpeed = 0;
+
+      function updateAutoScroll(clientY) {
+        const edgeSize = 90;
+
+        const maxSpeed = 14;
+
+        const viewportHeight = window.innerHeight;
+
+        autoScrollSpeed = 0;
+
+        /*
+         * Near top.
+         */
+
+        if (clientY < edgeSize) {
+          const distance = edgeSize - clientY;
+
+          autoScrollSpeed = -Math.min(maxSpeed, Math.max(2, distance / 4));
+        } else if (clientY > viewportHeight - edgeSize) {
+          /*
+           * Near bottom.
+           */
+          const distance = clientY - (viewportHeight - edgeSize);
+
+          autoScrollSpeed = Math.min(maxSpeed, Math.max(2, distance / 4));
+        }
+
+        if (autoScrollSpeed !== 0 && !autoScrollAnimation) {
+          startAutoScroll();
+        }
+      }
+
+      function startAutoScroll() {
+        if (autoScrollAnimation) {
+          return;
+        }
+
+        function scrollLoop() {
+          if (autoScrollSpeed !== 0) {
+            window.scrollBy(0, autoScrollSpeed);
+          }
+
+          autoScrollAnimation = requestAnimationFrame(scrollLoop);
+        }
+
+        autoScrollAnimation = requestAnimationFrame(scrollLoop);
+      }
+
+      function stopAutoScroll() {
+        autoScrollSpeed = 0;
+
+        if (autoScrollAnimation) {
+          cancelAnimationFrame(autoScrollAnimation);
+
+          autoScrollAnimation = null;
+        }
+      }
+
+      /*
+       * ============================================================
+       * DESKTOP DRAG AUTO-SCROLL
+       * ============================================================
+       */
+
+      document.addEventListener("dragover", (event) => {
+        updateAutoScroll(event.clientY);
+      });
+
+      document.addEventListener("drop", () => {
+        stopAutoScroll();
+      });
+
+      document.addEventListener("dragend", () => {
+        stopAutoScroll();
+      });
+
+      /*
+       * ============================================================
+       * INITIALIZE
+       * ============================================================
+       */
+
+      console.log("Quiz controller loaded:", {
+        available: typeof window.quizController === "object",
+        prepareQuiz: typeof window.quizController?.prepareQuiz,
+      });
+
+      newQuiz();
+    </script>
+  </body>
+</html>
