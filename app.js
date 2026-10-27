@@ -32,6 +32,8 @@
   let lastResults = null;
 
   const elements = {
+    disclaimerModal: document.getElementById("disclaimerModal"),
+    disclaimerAcceptButton: document.getElementById("disclaimerAcceptButton"),
     category: document.getElementById("drugCategory"),
     questionCount: document.getElementById("questionCount"),
     setupScreen: document.getElementById("setupScreen"),
@@ -308,6 +310,14 @@
   // ----------------------------------------------------------
   // SCREEN NAVIGATION
   // ----------------------------------------------------------
+
+  function acceptDisclaimer() {
+    if (elements.disclaimerModal) {
+      elements.disclaimerModal.hidden = true;
+    }
+
+    showSetupScreen();
+  }
 
   function showSetupScreen() {
     quizStarted = false;
@@ -739,6 +749,13 @@
       "completionSetupButton",
     );
 
+    if (elements.disclaimerAcceptButton) {
+      elements.disclaimerAcceptButton.addEventListener(
+        "click",
+        acceptDisclaimer,
+      );
+    }
+
     if (elements.category) {
       elements.category.addEventListener("change", handleCategoryChange);
     }
@@ -871,7 +888,17 @@
     // Prepare a question set but never start the clock here.
     newQuiz();
 
-    showSetupScreen();
+    // Keep the setup inaccessible until the disclaimer is acknowledged.
+    if (elements.disclaimerModal) {
+      elements.disclaimerModal.hidden = false;
+      setVisible(elements.setupScreen, false);
+      setVisible(elements.gameScreen, false);
+      setVisible(elements.completion, false);
+    } else {
+      // Fallback if the disclaimer markup is missing.
+      showSetupScreen();
+    }
+
     timer.refresh();
 
     // Keep setup controls enabled when entering a new session.
