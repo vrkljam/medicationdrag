@@ -230,7 +230,7 @@
     const select = elements.questionCount;
 
     const previousValue = select.value;
-    const standardCounts = [5, 10, 15, 20, 25, 30, 50];
+    const standardCounts = [5, 10, 15, 20, 25, 30, 50, 100];
 
     select.replaceChildren();
 
