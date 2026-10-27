@@ -147,11 +147,25 @@
   }
 
   function updateCategoryPresentation() {
-    if (
-      elements.category &&
-      typeof window.updateCategoryPresentation === "function"
-    ) {
-      window.updateCategoryPresentation(elements.category.value);
+    if (!elements.category) return;
+
+    const categoryId = elements.category.value;
+
+    if (typeof window.updateCategoryPresentation === "function") {
+      window.updateCategoryPresentation(categoryId);
+    }
+
+    const category = window.getCategory?.(categoryId);
+
+    const gameCategoryName = document.getElementById("gameCategoryName");
+    const gameCategorySymbol = document.getElementById("gameCategorySymbol");
+
+    if (category && gameCategoryName) {
+      gameCategoryName.textContent = category.name;
+    }
+
+    if (category && gameCategorySymbol) {
+      gameCategorySymbol.textContent = category.symbol;
     }
   }
 
@@ -269,6 +283,9 @@
   function handleCategoryChange() {
     updateCategoryPresentation();
     updateQuestionCountOptions();
+
+    // Rebuild the question set using the newly selected category.
+    newQuiz();
   }
 
   function handleQuestionCountChange() {
@@ -405,6 +422,12 @@
   // ----------------------------------------------------------
 
   function startQuiz() {
+    console.log("DEBUG: startQuiz was called");
+    console.log("START QUIZ DEBUG", {
+      selectedCategory: elements.category?.value,
+      firstQuestion: currentQuiz[0],
+      questionCount: currentQuiz.length,
+    });
     if (quizStarted || quizFinished || quizExpired) return;
 
     if (currentQuiz.length === 0) {
@@ -732,6 +755,7 @@
   // ----------------------------------------------------------
 
   function bindEvents() {
+    console.log("DEBUG: bindEvents is running");
     const startButton = document.getElementById("startQuizButton");
     const setupForm = document.getElementById("setupForm");
     // const newGameButton = document.getElementById("newGameButton");
